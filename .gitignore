@@ -163,7 +163,6 @@ cython_debug/
 #.idea/
 
 # Custom patterns
-
 analystbot9000/
 dissector/
 news_sum/
