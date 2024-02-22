@@ -162,10 +162,3 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Custom patterns
-analystbot9000/
-dissector/
-news_sum/
-seohyeah/
-wizdom_xtractor/
-writeemup/
