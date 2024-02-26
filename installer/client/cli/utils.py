@@ -84,8 +84,8 @@ class Standalone:
                 return
         else:
             if context:
-                user_message += {role: "system", content: context}
-                messages = [user_message]
+                messages = [
+                    {"role": "system", "content": context}, user_message]
             else:
                 messages = [user_message]
         try:
@@ -150,8 +150,8 @@ class Standalone:
                 return
         else:
             if context:
-                user_message += {'role': 'system', 'content': context}
-                messages = [user_message]
+                messages = [
+                    {'role': 'system', 'content': context}, user_message]
             else:
                 messages = [user_message]
         try:

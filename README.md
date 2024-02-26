@@ -14,6 +14,7 @@
 <h4><code>fabric</code> is an open-source framework for augmenting humans using AI.</h4>
 </p>
 
+[Introduction Video](#introduction-video) •
 [What and Why](#whatandwhy) •
 [Philosophy](#philosophy) •
 [Quickstart](#quickstart) •
@@ -25,6 +26,7 @@
 
 ## Navigation
 
+- [Introduction Video](#introduction-video)
 - [What and Why](#what-and-why)
 - [Philosophy](#philosophy)
   - [Breaking problems into components](#breaking-problems-into-components)
@@ -45,18 +47,13 @@
 
 <br />
 
-> [!NOTE]  
-> February 16, 2024 — **It's now far easier to install and use Fabric!** Just head to the [Quickstart](#quickstart), install Poetry, and run `setup.sh`, and it'll do all the work for you!
+## Introduction video
 
-<br />
-
-```bash
-# A quick demonstration of writing an essay with Fabric
-```
-
-<video src="https://github.com/danielmiessler/fabric/assets/50654/09c11764-e6ba-4709-952d-450d70d76ac9" controls>
-  Your browser does not support the video tag.
-</video>
+<div align="center">
+<a href="https://youtu.be/wPEyyigh10g">
+  <img width="972" alt="fabric_intro_video" src="https://github.com/danielmiessler/fabric/assets/50654/1eb1b9be-0bab-4c77-8ed2-ed265e8a3435">
+</a>
+</div>
 
 ## What and why
 
@@ -265,7 +262,7 @@ The wisdom of crowds for the win.
 
 But we go beyond just providing Patterns. We provide code for you to build your very own Fabric server and personal AI infrastructure!
 
-To get started, head over to the [`/server/`](https://github.com/danielmiessler/fabric/tree/main/server) directory and set up your own Fabric Mill with your own Patterns running! You can then use the [`/client/standalone_client_examples`](https://github.com/danielmiessler/fabric/tree/main/client/standalone_client_examples) to connect to it.
+To get started, just run the `./setup.sh` file and it'll set up the client, the API server, and the API server web interface. The output of the setup command will also tell you how to run the commands to start them.
 
 ## Structure
 
