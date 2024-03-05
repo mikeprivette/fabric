@@ -1,7 +1,6 @@
 from .utils import Standalone, Update, Setup, Alias
 import argparse
 import sys
-import time
 import os
 
 
@@ -16,6 +15,11 @@ def main():
     parser.add_argument(
         "--copy", "-C", help="Copy the response to the clipboard", action="store_true"
     )
+    parser.add_argument(
+        '--agents', '-a', choices=['trip_planner', 'ApiKeys'],
+        help="Use an AI agent to help you with a task. Acceptable values are 'trip_planner' or 'ApiKeys'. This option cannot be used with any other flag."
+    )
+
     parser.add_argument(
         "--output",
         "-o",
@@ -67,6 +71,17 @@ def main():
         Update()
         Alias()
         sys.exit()
+    if args.agents:
+        # Handle the agents logic
+        if args.agents == 'trip_planner':
+            from .agents.trip_planner.main import planner_cli
+            tripcrew = planner_cli()
+            tripcrew.ask()
+            sys.exit()
+        elif args.agents == 'ApiKeys':
+            from .utils import AgentSetup
+            AgentSetup().run()
+            sys.exit()
     if args.update:
         Update()
         Alias()
