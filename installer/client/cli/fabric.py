@@ -43,8 +43,16 @@ def main():
     parser.add_argument(
         "--setup", help="Set up your fabric instance", action="store_true"
     )
+    parser.add_argument('--changeDefaultModel',
+                        help="Change the default model. Your choice will be saved in ~/.config/fabric/.env). For a list of available models, use the --listmodels flag.")
     parser.add_argument(
-        "--model", "-m", help="Select the model to use (GPT-4 by default)", default="gpt-4-turbo-preview"
+        '--local', '-L', help="Use local LLM. Default is llama2", action="store_true")
+
+    parser.add_argument(
+        "--claude", help="Use Claude AI", action="store_true")
+
+    parser.add_argument(
+        "--model", "-m", help="Select the model to use (GPT-4 by default for chatGPT and llama2 for Ollama)", default="gpt-4-turbo-preview"
     )
     parser.add_argument(
         "--listmodels", help="List all available models", action="store_true"
@@ -71,6 +79,10 @@ def main():
         Update()
         Alias()
         sys.exit()
+    if args.changeDefaultModel:
+        Setup().default_model(args.changeDefaultModel)
+        print(f"Default model changed to {args.changeDefaultModel}")
+        sys.exit()
     if args.agents:
         # Handle the agents logic
         if args.agents == 'trip_planner':
@@ -90,7 +102,13 @@ def main():
         if not os.path.exists(os.path.join(config, "context.md")):
             print("Please create a context.md file in ~/.config/fabric")
             sys.exit()
-    standalone = Standalone(args, args.pattern)
+    standalone = None
+    if args.local:
+        standalone = Standalone(args, args.pattern, local=True)
+    elif args.claude:
+        standalone = Standalone(args, args.pattern, claude=True)
+    else:
+        standalone = Standalone(args, args.pattern)
     if args.list:
         try:
             direct = sorted(os.listdir(config_patterns_directory))

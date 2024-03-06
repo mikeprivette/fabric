@@ -47,6 +47,9 @@
 
 <br />
 
+> [!NOTE]  
+> We are improving the project so quickly that you should update often. That means `git pull; ./setup.sh` in the main directory, and then sourcing your shell files and/or restarting your terminal.
+
 ## Introduction video
 
 <div align="center">
@@ -194,7 +197,8 @@ Once you have it all set up, here's how to use it.
    `fabric -h`
 
 ```bash
-fabric [-h] [--text TEXT] [--copy] [--agents {trip_planner,ApiKeys}] [--output [OUTPUT]] [--stream] [--list] [--update] [--pattern PATTERN] [--setup] [--model MODEL] [--listmodels] [--context]
+fabric [-h] [--text TEXT] [--copy] [--agents {trip_planner,ApiKeys}] [--output [OUTPUT]] [--stream] [--list] [--update] [--pattern PATTERN] [--setup] [--changeDefaultModel CHANGEDEFAULTMODEL] [--local]
+              [--claude] [--model MODEL] [--listmodels] [--context]
 
 An open source framework for augmenting humans using AI.
 
@@ -212,8 +216,12 @@ options:
   --pattern PATTERN, -p PATTERN
                         The pattern (prompt) to use
   --setup               Set up your fabric instance
+  --changeDefaultModel CHANGEDEFAULTMODEL
+                        Change the default model. Your choice will be saved in ~/.config/fabric/.env). For a list of available models, use the --listmodels flag.
+  --local, -L           Use local LLM. Default is llama2
+  --claude              Use Claude AI
   --model MODEL, -m MODEL
-                        Select the model to use (GPT-4 by default)
+                        Select the model to use (GPT-4 by default for chatGPT and llama2 for Ollama)
   --listmodels          List all available models
   --context, -c         Use Context file (context.md) to add context to your pattern
 ```
