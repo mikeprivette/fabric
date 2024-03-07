@@ -48,7 +48,9 @@
 <br />
 
 > [!NOTE]  
-> We are improving the project so quickly that you should update often. That means `git pull; ./setup.sh` in the main directory, and then sourcing your shell files and/or restarting your terminal.
+> We are adding functionality to the project so often that you should update often as well. That means: `git pull; ./setup.sh; fabric --update` in the main directory, and then sourcing your shell files and/or restarting your terminal. So exciting!
+
+**March 6, 2024** — We just added support for Claude, local models via Ollama, and tons of other stuff. Check `fabric -h` for the latest!
 
 ## Introduction video
 
@@ -197,8 +199,11 @@ Once you have it all set up, here's how to use it.
    `fabric -h`
 
 ```bash
-fabric [-h] [--text TEXT] [--copy] [--agents {trip_planner,ApiKeys}] [--output [OUTPUT]] [--stream] [--list] [--update] [--pattern PATTERN] [--setup] [--changeDefaultModel CHANGEDEFAULTMODEL] [--local]
-              [--claude] [--model MODEL] [--listmodels] [--context]
+fabric [-h] [--text TEXT] [--copy] [--agents {trip_planner,ApiKeys}]
+              [--output [OUTPUT]] [--stream] [--list] [--clear] [--update]
+              [--pattern PATTERN] [--setup]
+              [--changeDefaultModel CHANGEDEFAULTMODEL] [--model MODEL]
+              [--listmodels] [--context]
 
 An open source framework for augmenting humans using AI.
 
@@ -207,23 +212,32 @@ options:
   --text TEXT, -t TEXT  Text to extract summary from
   --copy, -C            Copy the response to the clipboard
   --agents {trip_planner,ApiKeys}, -a {trip_planner,ApiKeys}
-                        Use an AI agent to help you with a task. Acceptable values are 'trip_planner' or 'ApiKeys'. This option cannot be used with any other flag.
+                        Use an AI agent to help you with a task. Acceptable
+                        values are 'trip_planner' or 'ApiKeys'. This option
+                        cannot be used with any other flag.
   --output [OUTPUT], -o [OUTPUT]
                         Save the response to a file
-  --stream, -s          Use this option if you want to see the results in realtime. NOTE: You will not be able to pipe the output into another command.
+  --stream, -s          Use this option if you want to see the results in
+                        realtime. NOTE: You will not be able to pipe the
+                        output into another command.
   --list, -l            List available patterns
+  --clear               Clears your persistant model choice so that you can
+                        once again use the --model flag
   --update, -u          Update patterns
   --pattern PATTERN, -p PATTERN
                         The pattern (prompt) to use
   --setup               Set up your fabric instance
   --changeDefaultModel CHANGEDEFAULTMODEL
-                        Change the default model. Your choice will be saved in ~/.config/fabric/.env). For a list of available models, use the --listmodels flag.
-  --local, -L           Use local LLM. Default is llama2
-  --claude              Use Claude AI
+                        Change the default model. Your choice will be saved in
+                        ~/.config/fabric/.env). For a list of available
+                        models, use the --listmodels flag.
   --model MODEL, -m MODEL
-                        Select the model to use (GPT-4 by default for chatGPT and llama2 for Ollama)
+                        Select the model to use. NOTE: Will not work if you
+                        have set a default model. please use --clear to clear
+                        persistance before using this flag
   --listmodels          List all available models
-  --context, -c         Use Context file (context.md) to add context to your pattern
+  --context, -c         Use Context file (context.md) to add context to your
+                        pattern
 ```
 
 #### Example commands

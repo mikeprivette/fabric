@@ -8,6 +8,7 @@ import platform
 from dotenv import load_dotenv
 import zipfile
 import tempfile
+import re
 import shutil
 
 current_directory = os.path.dirname(os.path.realpath(__file__))
@@ -16,7 +17,7 @@ env_file = os.path.join(config_directory, ".env")
 
 
 class Standalone:
-    def __init__(self, args, pattern="", env_file="~/.config/fabric/.env", local=False, claude=False):
+    def __init__(self, args, pattern="", env_file="~/.config/fabric/.env"):
         """        Initialize the class with the provided arguments and environment file.
 
         Args:
@@ -39,27 +40,22 @@ class Standalone:
             apikey = os.environ["OPENAI_API_KEY"]
             self.client = OpenAI()
             self.client.api_key = apikey
-        except KeyError:
-            print("OPENAI_API_KEY not found in environment variables.")
-
         except FileNotFoundError:
             print("No API key found. Use the --apikey option to set the key")
             sys.exit()
-        self.local = local
+        self.local = False
         self.config_pattern_directory = config_directory
         self.pattern = pattern
         self.args = args
         self.model = args.model
-        self.claude = claude
+        self.claude = False
+        sorted_gpt_models, ollamaList, claudeList = self.fetch_available_models()
         try:
             self.model = os.environ["DEFAULT_MODEL"]
         except:
-            if self.local:
-                if self.args.model == 'gpt-4-turbo-preview':
-                    self.model = 'llama2'
-            if self.claude:
-                if self.args.model == 'gpt-4-turbo-preview':
-                    self.model = 'claude-3-opus-20240229'
+            pass
+        self.local = self.model.strip() in ollamaList
+        self.claude = self.model.strip() in claudeList
 
     async def localChat(self, messages):
         from ollama import AsyncClient
@@ -258,6 +254,9 @@ class Standalone:
                 f.write(response.choices[0].message.content)
 
     def fetch_available_models(self):
+        gptlist = []
+        fullOllamaList = []
+        claudeList = ['claude-3-opus-20240229']
         headers = {
             "Authorization": f"Bearer {self.client.api_key}"
         }
@@ -266,25 +265,27 @@ class Standalone:
             "https://api.openai.com/v1/models", headers=headers)
 
         if response.status_code == 200:
-            print("OpenAI GPT models:\n")
             models = response.json().get("data", [])
             # Filter only gpt models
             gpt_models = [model for model in models if model.get(
                 "id", "").startswith(("gpt"))]
             # Sort the models alphabetically by their ID
-            sorted_gpt_models = sorted(gpt_models, key=lambda x: x.get("id"))
+            sorted_gpt_models = sorted(
+                gpt_models, key=lambda x: x.get("id"))
 
             for model in sorted_gpt_models:
-                print(model.get("id"))
-            print("\nLocal Ollama models:")
-            import ollama
-            ollamaList = ollama.list()['models']
-            for model in ollamaList:
-                print(model['name'].rstrip(":latest"))
-            print("\nClaude models:")
-            print("claude-3-opus-20240229")
+                gptlist.append(model.get("id"))
         else:
             print(f"Failed to fetch models: HTTP {response.status_code}")
+            sys.exit()
+        import ollama
+        try:
+            default_modelollamaList = ollama.list()['models']
+            for model in default_modelollamaList:
+                fullOllamaList.append(model['name'].rstrip(":latest"))
+        except:
+            fullOllamaList = []
+        return gptlist, fullOllamaList, claudeList
 
     def get_cli_input(self):
         """ aided by ChatGPT; uses platform library
@@ -421,6 +422,51 @@ class Setup:
             self.config_directory, "patterns")
         os.makedirs(self.pattern_directory, exist_ok=True)
         self.env_file = os.path.join(self.config_directory, ".env")
+        self.gptlist = []
+        self.fullOllamaList = []
+        self.claudeList = ['claude-3-opus-20240229']
+        load_dotenv(self.env_file)
+        try:
+            openaiapikey = os.environ["OPENAI_API_KEY"]
+            self.openaiapi_key = openaiapikey
+        except KeyError:
+            self.openaiapi_key = ""
+        try:
+            self.fetch_available_models()
+        except:
+            pass
+
+    def fetch_available_models(self):
+        headers = {
+            "Authorization": f"Bearer {self.openaiapi_key}"
+        }
+
+        response = requests.get(
+            "https://api.openai.com/v1/models", headers=headers)
+
+        if response.status_code == 200:
+            models = response.json().get("data", [])
+            # Filter only gpt models
+            gpt_models = [model for model in models if model.get(
+                "id", "").startswith(("gpt"))]
+            # Sort the models alphabetically by their ID
+            sorted_gpt_models = sorted(
+                gpt_models, key=lambda x: x.get("id"))
+
+            for model in sorted_gpt_models:
+                self.gptlist.append(model.get("id"))
+        else:
+            print(f"Failed to fetch models: HTTP {response.status_code}")
+            sys.exit()
+        import ollama
+        try:
+            default_modelollamaList = ollama.list()['models']
+            for model in default_modelollamaList:
+                self.fullOllamaList.append(model['name'].rstrip(":latest"))
+        except:
+            self.fullOllamaList = []
+        allmodels = self.gptlist + self.fullOllamaList + self.claudeList
+        return allmodels
 
     def api_key(self, api_key):
         """        Set the OpenAI API key in the environment file.
@@ -474,32 +520,135 @@ class Setup:
             with open(self.env_file, "w") as f:
                 f.write(f"CLAUDE_API_KEY={claude_key}")
 
+    def update_fabric_command(self, line, model):
+        fabric_command_regex = re.compile(
+            r"(alias.*fabric --pattern\s+\S+.*?)( --model.*)?'")
+        match = fabric_command_regex.search(line)
+        if match:
+            base_command = match.group(1)
+            # Provide a default value for current_flag
+            current_flag = match.group(2) if match.group(2) else ""
+            new_flag = ""
+            new_flag = f" --model {model}"
+            # Update the command if the new flag is different or to remove an existing flag.
+            # Ensure to add the closing quote that was part of the original regex
+            return f"{base_command}{new_flag}'\n"
+        else:
+            return line  # Return the line unmodified if no match is found.
+
+    def clear_env_line(self, line):
+        fabric_command_regex = re.compile(
+            r"(alias.*fabric --pattern\s+\S+.*?)( --model.*)?'")
+        match = fabric_command_regex.search(line)
+        if match:
+            base_command = match.group(1)
+            return f"{base_command}'\n"
+        else:
+            return line  # Return the line unmodified if no match is found.
+
+    def clean_env(self):
+        """Clear the DEFAULT_MODEL from the environment file.
+
+        Returns:
+            None
+        """
+        user_home = os.path.expanduser("~")
+        sh_config = None
+        # Check for shell configuration files
+        if os.path.exists(os.path.join(user_home, ".bashrc")):
+            sh_config = os.path.join(user_home, ".bashrc")
+        elif os.path.exists(os.path.join(user_home, ".zshrc")):
+            sh_config = os.path.join(user_home, ".zshrc")
+        else:
+            print("No environment file found.")
+        if sh_config:
+            with open(sh_config, "r") as f:
+                lines = f.readlines()
+            with open(sh_config, "w") as f:
+                for line in lines:
+                    modified_line = line
+                    # Update existing fabric commands
+                    if "fabric --pattern" in line:
+                        modified_line = self.clear_env_line(
+                            modified_line)
+                    elif "fabric=" in line:
+                        modified_line = self.clear_env_line(
+                            modified_line)
+                    f.write(modified_line)
+        else:
+            print("No shell configuration file found.")
+
+    def update_fabric_alias(self, line, model):
+        fabric_alias_regex = re.compile(
+            r"(alias fabric='[^']+?)( --model.*)?'")
+        match = fabric_alias_regex.search(line)
+        if match:
+            base_command, current_flag = match.groups()
+            new_flag = f" --model {model}"
+            # Update the alias if the new flag is different or to remove an existing flag.
+            return f"{base_command}{new_flag}'\n"
+        else:
+            return line  # Return the line unmodified if no match is found.
+
     def default_model(self, model):
-        """        Set the default model in the environment file.
+        """Set the default model in the environment file.
 
         Args:
             model (str): The model to be set.
         """
-
         model = model.strip()
-        if os.path.exists(self.env_file) and model:
-            with open(self.env_file, "r") as f:
+        if model:
+            # Write or update the DEFAULT_MODEL in env_file
+            allModels = self.claudeList + self.fullOllamaList + self.gptlist
+            if model not in allModels:
+                print(
+                    f"Error: {model} is not a valid model. Please run fabric --listmodels to see the available models.")
+                sys.exit()
+            if os.path.exists(self.env_file):
+                with open(self.env_file, "r") as f:
+                    lines = f.readlines()
+                with open(self.env_file, "w") as f:
+                    found = False
+                    for line in lines:
+                        if line.startswith("DEFAULT_MODEL"):
+                            f.write(f"DEFAULT_MODEL={model}\n")
+                            found = True
+                        else:
+                            f.write(line)
+                    if not found:
+                        f.write(f"DEFAULT_MODEL={model}\n")
+            else:
+                with open(self.env_file, "w") as f:
+                    f.write(f"DEFAULT_MODEL={model}\n")
+
+        # Compile regular expressions outside of the loop for efficiency
+
+        user_home = os.path.expanduser("~")
+        sh_config = None
+        # Check for shell configuration files
+        if os.path.exists(os.path.join(user_home, ".bashrc")):
+            sh_config = os.path.join(user_home, ".bashrc")
+        elif os.path.exists(os.path.join(user_home, ".zshrc")):
+            sh_config = os.path.join(user_home, ".zshrc")
+
+        if sh_config:
+            with open(sh_config, "r") as f:
                 lines = f.readlines()
-            with open(self.env_file, "w") as f:
+            with open(sh_config, "w") as f:
                 for line in lines:
-                    if "DEFAULT_MODEL" not in line:
-                        f.write(line)
-                f.write(f"DEFAULT_MODEL={model}")
-        elif model:
-            with open(self.env_file, "w") as f:
-                f.write(f"DEFAULT_MODEL={model}")
+                    modified_line = line
+                    # Update existing fabric commands
+                    if "fabric --pattern" in line:
+                        modified_line = self.update_fabric_command(
+                            modified_line, model)
+                    elif "fabric=" in line:
+                        modified_line = self.update_fabric_alias(
+                            modified_line, model)
+                    f.write(modified_line)
+            print(f"""Default model changed to {
+                  model}. Please restart your terminal to use it.""")
         else:
-            with open(self.env_file, "r") as f:
-                lines = f.readlines()
-            with open(self.env_file, "w") as f:
-                for line in lines:
-                    if "DEFAULT_MODEL" not in line:
-                        f.write(line)
+            print("No shell configuration file found.")
 
     def patterns(self):
         """        Method to update patterns and exit the system.
@@ -526,8 +675,10 @@ class Setup:
         print("Please enter your claude API key. If you do not have one, or if you have already entered it, press enter.\n")
         claudekey = input()
         self.claude_key(claudekey.strip())
-        print("Please enter your default model. Press enter to choose the default gpt-4-turbo-preview\n")
+        model = input(
+            "Please enter your default model. Press enter to choose the default gpt-4-turbo-preview\n")
         self.patterns()
+        self.default_model(model)
 
 
 class Transcribe:
