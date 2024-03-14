@@ -37,8 +37,6 @@ def main():
     parser.add_argument(
         "--list", "-l", help="List available patterns", action="store_true"
     )
-    parser.add_argument('--clear', help="Clears your persistant model choice so that you can once again use the --model flag",
-                        action="store_true")
     parser.add_argument(
         "--update", "-u", help="Update patterns. NOTE: This will revert the default model to gpt4-turbo. please run --changeDefaultModel to once again set default model", action="store_true")
     parser.add_argument("--pattern", "-p", help="The pattern (prompt) to use")
@@ -49,11 +47,13 @@ def main():
                         help="Change the default model. For a list of available models, use the --listmodels flag.")
 
     parser.add_argument(
-        "--model", "-m", help="Select the model to use. NOTE: Will not work if you have set a default model. please use --clear to clear persistance before using this flag", default="gpt-4-turbo-preview"
+        "--model", "-m", help="Select the model to use. NOTE: Will not work if you have set a default model. please use --clear to clear persistence before using this flag"
     )
     parser.add_argument(
         "--listmodels", help="List all available models", action="store_true"
     )
+    parser.add_argument('--remoteOllamaServer',
+                        help='The URL of the remote ollamaserver to use. ONLY USE THIS if you are using a local ollama server in an non-deault location or port')
     parser.add_argument('--context', '-c',
                         help="Use Context file (context.md) to add context to your pattern", action="store_true")
 
@@ -67,7 +67,7 @@ def main():
         os.makedirs(config)
     if args.setup:
         Setup().run()
-        Alias()
+        Alias().execute()
         sys.exit()
     if not os.path.exists(env_file) or not os.path.exists(config_patterns_directory):
         print("Please run --setup to set up your API key and download patterns.")
@@ -78,7 +78,6 @@ def main():
         sys.exit()
     if args.changeDefaultModel:
         Setup().default_model(args.changeDefaultModel)
-        print(f"Default model changed to {args.changeDefaultModel}")
         sys.exit()
     if args.agents:
         # Handle the agents logic
@@ -99,10 +98,6 @@ def main():
         if not os.path.exists(os.path.join(config, "context.md")):
             print("Please create a context.md file in ~/.config/fabric")
             sys.exit()
-    if args.clear:
-        Setup().clean_env()
-        print("Model choice cleared. please restart your session to use the --model flag.")
-        sys.exit()
     standalone = Standalone(args, args.pattern)
     if args.list:
         try:
@@ -130,20 +125,34 @@ def main():
     else:
         text = standalone.get_cli_input()
     if args.stream and not args.context:
-        standalone.streamMessage(text)
+        if args.remoteOllamaServer:
+            standalone.streamMessage(text, host=args.remoteOllamaServer)
+        else:
+            standalone.streamMessage(text)
         sys.exit()
     if args.stream and args.context:
         with open(config_context, "r") as f:
             context = f.read()
-            standalone.streamMessage(text, context=context)
+            if args.remoteOllamaServer:
+                standalone.streamMessage(
+                    text, context=context, host=args.remoteOllamaServer)
+            else:
+                standalone.streamMessage(text, context=context)
         sys.exit()
     elif args.context:
         with open(config_context, "r") as f:
             context = f.read()
-            standalone.sendMessage(text, context=context)
+            if args.remoteOllamaServer:
+                standalone.sendMessage(
+                    text, context=context, host=args.remoteOllamaServer)
+            else:
+                standalone.sendMessage(text, context=context)
         sys.exit()
     else:
-        standalone.sendMessage(text)
+        if args.remoteOllamaServer:
+            standalone.sendMessage(text, host=args.remoteOllamaServer)
+        else:
+            standalone.sendMessage(text)
         sys.exit()
 
 
