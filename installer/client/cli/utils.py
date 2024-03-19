@@ -34,6 +34,8 @@ class Standalone:
         """
 
         # Expand the tilde to the full path
+        if args is None:
+            args = type('Args', (), {})()
         env_file = os.path.expanduser(env_file)
         load_dotenv(env_file)
         assert 'OPENAI_API_KEY' in os.environ, "Error: OPENAI_API_KEY not found in environment variables. Please run fabric --setup and add a key."
@@ -45,14 +47,9 @@ class Standalone:
         self.config_pattern_directory = config_directory
         self.pattern = pattern
         self.args = args
-        self.model = None
-        if args.model:
-            self.model = args.model
-        else:
-            try:
-                self.model = os.environ["DEFAULT_MODEL"]
-            except:
-                self.model = 'gpt-4-turbo-preview'
+        self.model = getattr(args, 'model', None)
+        if not self.model:
+            self.model = 'gpt-4-turbo-preview'
         self.claude = False
         sorted_gpt_models, ollamaList, claudeList = self.fetch_available_models()
         self.local = self.model in ollamaList
